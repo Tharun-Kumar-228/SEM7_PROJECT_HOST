@@ -1,0 +1,39 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment variables & Secrets
+.env
+*.env
+backend/.env
+
+# Python / Virtual Environment / Cache
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+**/venv/
+.pytest_cache/
+
+# Build & Mobile / Expo outputs
+.expo/
+dist/
+**/dist/
+build/
+**/build/
+
+# Uploads & Temp files
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Large Datasets & Archives (dataset/ has 208,000+ files; dyslexic.zip is 105MB)
+dataset/
+**/dataset/
+*.zip
+dyslexic.zip
+
+# OS / IDE temp files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
