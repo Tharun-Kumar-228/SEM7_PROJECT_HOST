@@ -2,6 +2,9 @@ import Constants from 'expo-constants';
 
 // Automatically detect host computer IP address when running in Expo Go on physical mobile device
 const getBaseUrl = () => {
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
+  }
   try {
     const hostUri =
       Constants.expoConfig?.hostUri ||
