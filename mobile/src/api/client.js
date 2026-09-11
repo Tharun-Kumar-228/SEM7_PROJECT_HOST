@@ -1,24 +1,13 @@
 import Constants from 'expo-constants';
 
-// Automatically detect host computer IP address when running in Expo Go on physical mobile device
+const PROD_API_URL = 'https://neuroscreen-backend.onrender.com/api';
+
 const getBaseUrl = () => {
   if (process.env.EXPO_PUBLIC_API_URL) {
     return process.env.EXPO_PUBLIC_API_URL.replace(/\/+$/, '');
   }
-  try {
-    const hostUri =
-      Constants.expoConfig?.hostUri ||
-      Constants.hostUri ||
-      Constants.manifest?.debuggerHost ||
-      Constants.manifest2?.extra?.expoGo?.developer?.tool;
-    if (hostUri) {
-      const ip = hostUri.split(':')[0];
-      if (ip && ip !== 'localhost' && ip !== '127.0.0.1' && ip !== '::1') {
-        return `http://${ip}:5000/api`;
-      }
-    }
-  } catch (e) {}
-  return 'http://localhost:5000/api';
+  // Default to live production backend hosted on Render
+  return PROD_API_URL;
 };
 
 const API_BASE_URL = getBaseUrl();
@@ -45,7 +34,7 @@ const performRequest = async (endpoint, options = {}) => {
     });
   } catch (fetchErr) {
     const errorObj = new Error(
-      `Unable to connect to backend server at ${API_BASE_URL}. Please ensure your Express backend is running on port 5000.`
+      `Unable to connect to backend server at ${API_BASE_URL}. Please check your internet connection.`
     );
     errorObj.isNetworkError = true;
     throw errorObj;
