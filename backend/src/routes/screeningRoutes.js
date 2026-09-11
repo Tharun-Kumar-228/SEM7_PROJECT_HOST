@@ -11,6 +11,7 @@ const {
   predictSingleSentenceDirect,
   getScreeningResult,
   getScreenings,
+  deleteScreening,
 } = require('../controllers/screeningController');
 
 router.use(authenticate);
@@ -23,5 +24,6 @@ router.post('/:id/character-samples', uploadSample.single('sample'), saveCharact
 router.post('/:id/sentence-sample', uploadSample.single('sample'), saveSentenceSample);
 router.post('/:id/analyze', analyzeScreening);
 router.get('/:id/result', getScreeningResult);
+router.delete('/:id', deleteScreening);
 
 module.exports = router;

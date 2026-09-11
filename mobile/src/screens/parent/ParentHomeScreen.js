@@ -41,6 +41,30 @@ const ParentHomeScreen = ({ navigation }) => {
     navigation.navigate('ParentConsent', { student: child });
   };
 
+  const handleDeleteChild = (child) => {
+    Alert.alert(
+      'Delete Child Profile',
+      `Are you sure you want to delete ${child.name}? This will permanently delete their profile and all associated screening reports.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Profile',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await apiClient.delete(`/parents/children/${child._id}`);
+              fetchChildren();
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Failed to delete child profile');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderHeader = () => (
     <View style={styles.headerContainer}>
       <View style={styles.headerRow}>
@@ -85,7 +109,12 @@ const ParentHomeScreen = ({ navigation }) => {
                   Age {item.age} • {item.grade || 'Kindergarten'}
                 </Text>
               </View>
-              <StatusBadge status="ANALYSIS_PENDING" />
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                <TouchableOpacity onPress={() => handleDeleteChild(item)} style={{ padding: 4 }}>
+                  <Text style={{ fontSize: 16 }}>🗑️</Text>
+                </TouchableOpacity>
+                <StatusBadge status="ANALYSIS_PENDING" />
+              </View>
             </View>
 
             <View style={styles.actionRow}>

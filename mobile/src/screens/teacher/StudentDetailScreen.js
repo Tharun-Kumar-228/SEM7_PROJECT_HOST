@@ -105,6 +105,54 @@ const StudentDetailScreen = ({ route, navigation }) => {
     }
   };
 
+  const handleDeleteStudent = () => {
+    Alert.alert(
+      'Delete Student Record',
+      `Are you sure you want to delete ${student?.name}? This will permanently remove the student from your class roster and delete all associated screening history.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Student',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await apiClient.delete(`/teachers/students/${studentId}`);
+              navigation.goBack();
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Failed to delete student record');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  const handleDeleteScreening = (screeningId) => {
+    Alert.alert(
+      'Delete Screening Session',
+      'Are you sure you want to delete this screening report?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await apiClient.delete(`/screenings/${screeningId}`);
+              fetchStudentAndReport();
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Failed to delete screening session');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -133,9 +181,18 @@ const StudentDetailScreen = ({ route, navigation }) => {
           Class: {student.classId ? `Grade ${student.classId.grade}-${student.classId.section}` : 'Unassigned'}
         </Text>
         
-        <TouchableOpacity style={styles.editCardButton} onPress={handleOpenEditModal}>
-          <Text style={styles.editCardButtonText}>Edit Student Details</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10, marginTop: 12 }}>
+          <TouchableOpacity style={styles.editCardButton} onPress={handleOpenEditModal}>
+            <Text style={styles.editCardButtonText}>Edit Details</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.editCardButton, { backgroundColor: '#FEE2E2', borderColor: '#FCA5A5' }]}
+            onPress={handleDeleteStudent}
+          >
+            <Text style={[styles.editCardButtonText, { color: colors.error }]}>🗑️ Delete Student</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
 
@@ -171,21 +228,27 @@ const StudentDetailScreen = ({ route, navigation }) => {
                       {new Date(item.date).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </Text>
                   </View>
-                  <View
-                    style={[
-                      styles.pendingBadge,
-                      { backgroundColor: isCompleted ? '#DCFCE7' : '#FEF3C7' },
-                    ]}
-                  >
-                    <Text
+
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                    <TouchableOpacity onPress={() => handleDeleteScreening(item.screeningId)} style={{ padding: 2 }}>
+                      <Text style={{ fontSize: 14 }}>🗑️</Text>
+                    </TouchableOpacity>
+                    <View
                       style={[
-                        styles.pendingBadgeText,
-                        { color: isCompleted ? '#166534' : '#92400E' },
+                        styles.pendingBadge,
+                        { backgroundColor: isCompleted ? '#DCFCE7' : '#FEF3C7' },
                       ]}
-                      numberOfLines={1}
                     >
-                      {item.status}
-                    </Text>
+                      <Text
+                        style={[
+                          styles.pendingBadgeText,
+                          { color: isCompleted ? '#166534' : '#92400E' },
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {item.status}
+                      </Text>
+                    </View>
                   </View>
                 </View>
 

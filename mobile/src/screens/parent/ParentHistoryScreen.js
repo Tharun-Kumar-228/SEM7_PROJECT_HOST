@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, Alert } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import apiClient from '../../api/client';
 import { colors } from '../../theme/colors';
@@ -32,6 +32,30 @@ const ParentHistoryScreen = ({ navigation }) => {
   const onRefresh = () => {
     setRefreshing(true);
     fetchHistory();
+  };
+
+  const handleDeleteSession = (screeningId, childName) => {
+    Alert.alert(
+      'Delete Screening Session',
+      `Are you sure you want to permanently delete this screening report for ${childName}?`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await apiClient.delete(`/screenings/${screeningId}`);
+              fetchHistory();
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Failed to delete screening session');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const totalCount = screenings.length;
@@ -84,9 +108,19 @@ const ParentHistoryScreen = ({ navigation }) => {
 
         <View style={styles.cardFooterRow}>
           <Text style={styles.dateText}>
-            📅 {new Date(item.createdAt).toLocaleDateString()} at {new Date(item.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            📅 {new Date(item.createdAt).toLocaleDateString()}
           </Text>
-          <Text style={styles.actionLink}>View Report →</Text>
+
+          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+            <TouchableOpacity
+              onPress={() => handleDeleteSession(item._id, item.studentName || 'Child')}
+              style={{ marginRight: 14, padding: 4 }}
+            >
+              <Text style={{ fontSize: 13, color: '#EF4444', fontWeight: '700' }}>🗑️ Delete</Text>
+            </TouchableOpacity>
+
+            <Text style={styles.actionLink}>View Report →</Text>
+          </View>
         </View>
       </TouchableOpacity>
     );

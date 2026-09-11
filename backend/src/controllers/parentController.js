@@ -176,8 +176,50 @@ const recordConsent = async (req, res, next) => {
   }
 };
 
+// Delete a child profile and all associated screenings, samples, and results
+const deleteChild = async (req, res, next) => {
+  try {
+    const { id } = req.params; // studentId
+    const student = await Student.findById(id);
+
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Child profile not found' },
+      });
+    }
+
+    const Screening = require('../models/Screening');
+    const CharacterSample = require('../models/CharacterSample');
+    const SentenceSample = require('../models/SentenceSample');
+    const ScreeningResult = require('../models/ScreeningResult');
+
+    // Find all screenings for this child
+    const screenings = await Screening.find({ studentId: id });
+    const screeningIds = screenings.map((s) => s._id);
+
+    // Cascade delete associated screenings, samples, results, consent, and links
+    await CharacterSample.deleteMany({ $or: [{ studentId: id }, { screeningId: { $in: screeningIds } }] });
+    await SentenceSample.deleteMany({ $or: [{ studentId: id }, { screeningId: { $in: screeningIds } }] });
+    await ScreeningResult.deleteMany({ $or: [{ studentId: id }, { screeningId: { $in: screeningIds } }] });
+    await Screening.deleteMany({ studentId: id });
+    await ParentStudentLink.deleteMany({ studentId: id });
+    await Consent.deleteMany({ studentId: id });
+    await Student.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Child profile and all associated history deleted successfully',
+      data: { studentId: id },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   addChild,
   getChildren,
   recordConsent,
+  deleteChild,
 };

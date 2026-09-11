@@ -341,6 +341,35 @@ const getScreenings = async (req, res, next) => {
   }
 };
 
+// Delete a screening session and its associated results & samples
+const deleteScreening = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const screening = await Screening.findById(id);
+
+    if (!screening) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Screening session not found' },
+      });
+    }
+
+    // Cascade delete associated models & samples
+    await CharacterSample.deleteMany({ screeningId: id });
+    await SentenceSample.deleteMany({ screeningId: id });
+    await ScreeningResult.deleteMany({ screeningId: id });
+    await Screening.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Screening session and all associated report data deleted successfully',
+      data: { screeningId: id },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createScreening,
   saveCharacterSample,
@@ -350,4 +379,5 @@ module.exports = {
   predictSingleSentenceDirect,
   getScreeningResult,
   getScreenings,
+  deleteScreening,
 };

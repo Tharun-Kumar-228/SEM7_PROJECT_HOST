@@ -1,4 +1,3 @@
-import React, { useState, useCallback } from 'react';
 import {
   View,
   Text,
@@ -8,6 +7,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import apiClient from '../../api/client';
@@ -46,6 +46,30 @@ const TeacherStudentListScreen = ({ navigation }) => {
     fetchStudents();
   };
 
+  const handleDeleteStudent = (studentId, studentName) => {
+    Alert.alert(
+      'Delete Student Record',
+      `Are you sure you want to delete ${studentName}? This will permanently remove the student from your class roster and delete all associated screening history.`,
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete Student',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              setLoading(true);
+              await apiClient.delete(`/teachers/students/${studentId}`);
+              fetchStudents();
+            } catch (err) {
+              Alert.alert('Error', err.message || 'Failed to delete student record');
+              setLoading(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const renderStudentItem = ({ item }) => (
     <TouchableOpacity
       style={styles.card}
@@ -66,6 +90,12 @@ const TeacherStudentListScreen = ({ navigation }) => {
         </Text>
       </View>
       <View style={styles.badgeContainer}>
+        <TouchableOpacity
+          onPress={() => handleDeleteStudent(item._id, item.name)}
+          style={{ padding: 4, marginBottom: 4, alignSelf: 'flex-end' }}
+        >
+          <Text style={{ fontSize: 16 }}>🗑️</Text>
+        </TouchableOpacity>
         <View
           style={[
             styles.statusBadge,

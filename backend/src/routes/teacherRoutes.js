@@ -13,6 +13,7 @@ const {
   addStudentManual,
   getStudentById,
   updateStudent,
+  deleteStudent,
 } = require('../controllers/teacherController');
 
 router.use(authenticate);
@@ -28,6 +29,7 @@ router.post('/students', addStudentManual);
 router.get('/students', getStudents);
 router.get('/students/:id', getStudentById);
 router.put('/students/:id', updateStudent);
+router.delete('/students/:id', deleteStudent);
 
 
 module.exports = router;

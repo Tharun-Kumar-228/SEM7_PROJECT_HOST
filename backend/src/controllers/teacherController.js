@@ -425,6 +425,67 @@ const updateStudent = async (req, res, next) => {
   }
 };
 
+// Delete Student Record (Teacher Roster Management)
+const deleteStudent = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const mongoose = require('mongoose');
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        error: { code: 'INVALID_ID', message: 'Invalid Student ID format' },
+      });
+    }
+
+    const student = await Student.findById(id);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        error: { code: 'NOT_FOUND', message: 'Student record not found' },
+      });
+    }
+
+    // IDOR Check: Ensure teacher owns student's class if assigned
+    if (student.classId) {
+      const cls = await Class.findOne({ _id: student.classId, teacherId: req.user.userId });
+      if (!cls) {
+        return res.status(403).json({
+          success: false,
+          error: { code: 'FORBIDDEN', message: 'Unauthorized access to student record' },
+        });
+      }
+    }
+
+    const Screening = require('../models/Screening');
+    const CharacterSample = require('../models/CharacterSample');
+    const SentenceSample = require('../models/SentenceSample');
+    const ScreeningResult = require('../models/ScreeningResult');
+    const ParentStudentLink = require('../models/ParentStudentLink');
+    const Consent = require('../models/Consent');
+
+    // Find all screenings for this student
+    const screenings = await Screening.find({ studentId: id });
+    const screeningIds = screenings.map((s) => s._id);
+
+    // Cascade delete associated screenings, samples, results, consent, and links
+    await CharacterSample.deleteMany({ $or: [{ studentId: id }, { screeningId: { $in: screeningIds } }] });
+    await SentenceSample.deleteMany({ $or: [{ studentId: id }, { screeningId: { $in: screeningIds } }] });
+    await ScreeningResult.deleteMany({ $or: [{ studentId: id }, { screeningId: { $in: screeningIds } }] });
+    await Screening.deleteMany({ studentId: id });
+    await ParentStudentLink.deleteMany({ studentId: id });
+    await Consent.deleteMany({ studentId: id });
+    await Student.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Student record and associated screening history deleted successfully',
+      data: { studentId: id },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   createSchool,
   createClass,
@@ -435,5 +496,6 @@ module.exports = {
   addStudentManual,
   getStudentById,
   updateStudent,
+  deleteStudent,
 };
 
