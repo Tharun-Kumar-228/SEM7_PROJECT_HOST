@@ -3,7 +3,15 @@ require('dotenv').config();
 
 const connectDB = async () => {
   try {
-    const connStr = process.env.MONGODB_URI || 'mongodb://localhost:27017/neuroscreen';
+    const rawConnStr = process.env.MONGODB_URI;
+    const connStr = rawConnStr || 'mongodb://localhost:27017/neuroscreen';
+    
+    if (rawConnStr) {
+      console.log(`[MongoDB] Connecting using MONGODB_URI environment variable...`);
+    } else {
+      console.warn(`[MongoDB WARNING] MONGODB_URI not found in environment; using local fallback: ${connStr}`);
+    }
+
     await mongoose.connect(connStr);
     console.log(`[MongoDB] Connected successfully`);
     const User = require('../models/User');
@@ -13,10 +21,7 @@ const connectDB = async () => {
       await seedInitialData();
     }
   } catch (error) {
-    console.error('[MongoDB] Connection error:', error);
-    if (process.env.NODE_ENV !== 'test') {
-      process.exit(1);
-    }
+    console.error('[MongoDB] Connection error:', error.message);
   }
 };
 
