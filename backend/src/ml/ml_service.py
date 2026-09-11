@@ -135,6 +135,6 @@ def predict_sentence():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 if __name__ == '__main__':
-    port = int(os.environ.get('ML_PORT', 5001))
+    port = int(os.environ.get('PORT', os.environ.get('ML_PORT', 5001)))
     print(f"[ML SERVICE] Starting Dual-Model VisionMamba HTTP Server on port {port}...")
     app.run(host='0.0.0.0', port=port, debug=False)

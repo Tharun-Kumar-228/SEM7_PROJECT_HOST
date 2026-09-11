@@ -1,0 +1,36 @@
+services:
+  # 1. Dual-Model PyTorch VisionMamba & VMamba2D ML Inference Service
+  - type: web
+    name: neuroscreen-ml
+    runtime: python
+    region: singapore
+    plan: free
+    buildCommand: "pip install --no-cache-dir -r backend/requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu"
+    startCommand: "gunicorn --bind 0.0.0.0:$PORT --workers 1 --timeout 120 --chdir backend/src/ml ml_service:app"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.10.12
+
+  # 2. Node.js Express API Backend Service
+  - type: web
+    name: neuroscreen-backend
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: "npm install"
+    startCommand: "npm start"
+    envVars:
+      - key: NODE_VERSION
+        value: 20.11.0
+      - key: MONGODB_URI
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: JWT_SECRET
+        generateValue: true
+      - key: ML_SERVICE_URL
+        fromService:
+          type: web
+          name: neuroscreen-ml
+          property: host

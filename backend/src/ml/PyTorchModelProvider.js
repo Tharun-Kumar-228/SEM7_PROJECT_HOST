@@ -110,18 +110,20 @@ class PyTorchModelProvider extends ModelProvider {
   predictViaHttp(endpoint, payload) {
     return new Promise((resolve, reject) => {
       const postData = JSON.stringify(typeof payload === 'string' ? { image_path: payload } : payload);
-      const req = http.request(
+      const baseUrlStr = process.env.ML_SERVICE_URL || `http://127.0.0.1:${this.httpPort}`;
+      const fullUrl = new URL(endpoint, baseUrlStr);
+      const httpModule = fullUrl.protocol === 'https:' ? require('https') : http;
+
+      const req = httpModule.request(
+        fullUrl,
         {
-          hostname: '127.0.0.1',
-          port: this.httpPort,
-          path: endpoint,
           method: 'POST',
           agent: keepAliveAgent,
           headers: {
             'Content-Type': 'application/json',
             'Content-Length': Buffer.byteLength(postData),
           },
-          timeout: 4000,
+          timeout: 10000,
         },
         (res) => {
           let rawData = '';
