@@ -249,18 +249,17 @@ def analyze_sentence_spatial(img):
 
 def preprocess_sentence_image(image_input, img_size=96):
     """
-    Safely preprocess sentence image for VMamba2D:
-    - Resolves alpha channels onto white
-    - Preserves aspect ratio with letterbox centering onto square white canvas
-    - Extracts spatial motor metrics
-    - Applies standard ImageNet normalization
+    Preprocess sentence image for VMamba2D matching test_dysgraphia.py trained settings:
+    - Converts image to RGB ('RGB')
+    - Resizes directly to (img_size, img_size)
+    - Applies standard ImageNet normalization (mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     """
     if isinstance(image_input, Image.Image):
         img = image_input
     else:
         img = Image.open(image_input)
 
-    # Safe alpha channel handling
+    # Safe alpha channel handling - composite onto white
     if img.mode in ('RGBA', 'LA') or (img.mode == 'P' and 'transparency' in img.info):
         rgba = img.convert('RGBA')
         bg = Image.new('RGB', rgba.size, (255, 255, 255))
@@ -269,35 +268,10 @@ def preprocess_sentence_image(image_input, img_size=96):
     else:
         img = img.convert('RGB')
 
-    # Analyze spatial handwriting metrics
-    metrics = analyze_sentence_spatial(img)
-    ink_box = metrics.get('ink_box')
+    # Direct resize matching test_dysgraphia.py transform: T.Resize((img_size, img_size))
+    img_resized = img.resize((img_size, img_size), Image.BILINEAR)
 
-    if ink_box:
-        min_x, min_y, max_x, max_y = ink_box
-        pad_x = int((max_x - min_x) * 0.08)
-        pad_y = int((max_y - min_y) * 0.15)
-        crop_x0 = max(0, min_x - pad_x)
-        crop_y0 = max(0, min_y - pad_y)
-        crop_x1 = min(img.width, max_x + pad_x + 1)
-        crop_y1 = min(img.height, max_y + pad_y + 1)
-        cropped = img.crop((crop_x0, crop_y0, crop_x1, crop_y1))
-    else:
-        cropped = img
-
-    # Aspect-ratio preserving letterbox resize
-    w, h = cropped.size
-    scale = min(img_size / max(1, w), img_size / max(1, h))
-    new_w = max(1, int(w * scale))
-    new_h = max(1, int(h * scale))
-    scaled = cropped.resize((new_w, new_h), Image.BILINEAR)
-
-    letterbox = Image.new('RGB', (img_size, img_size), (255, 255, 255))
-    paste_x = (img_size - new_w) // 2
-    paste_y = (img_size - new_h) // 2
-    letterbox.paste(scaled, (paste_x, paste_y))
-
-    arr = np.array(letterbox, dtype=np.float32) / 255.0
+    arr = np.array(img_resized, dtype=np.float32) / 255.0
 
     mean = np.array([0.485, 0.456, 0.406], dtype=np.float32)
     std = np.array([0.229, 0.224, 0.225], dtype=np.float32)
@@ -305,39 +279,31 @@ def preprocess_sentence_image(image_input, img_size=96):
 
     arr = np.transpose(arr, (2, 0, 1))
     tensor = torch.from_numpy(arr).unsqueeze(0)
-    return tensor, metrics
+    return tensor
 
 def predict_single_sentence(image_path, expected_sentence=None, checkpoint_path=None):
     start_time = time.time()
     model, img_size = load_sentence_model(checkpoint_path)
-    tensor, metrics = preprocess_sentence_image(image_path, img_size)
+    tensor = preprocess_sentence_image(image_path, img_size)
 
     with torch.inference_mode():
         logits = model(tensor)
-        # Apply temperature calibration
-        scaled_logits = logits.float() / 0.5
-        probs = torch.softmax(scaled_logits, dim=1)[0]
+        probs = torch.softmax(logits.float(), dim=1)[0]
         raw_lpd = float(probs[0].item())
         raw_pd = float(probs[1].item())
 
-    # Combine deep VMamba2D features with spatial handwriting motor indicators
-    spatial_score = metrics.get('dysgraphia_score', 0.2)
-
-    # Weighted synthesis: 60% deep neural representation + 40% spatial line geometry
-    combined_pd = 0.60 * raw_pd + 0.40 * spatial_score
-
-    # Determine final calibrated probabilities
-    if spatial_score >= 0.38 or combined_pd >= 0.50:
-        pd_prob = round(min(0.95, max(0.60, combined_pd * 1.15)), 4)
-        lpd_prob = round(1.0 - pd_prob, 4)
+    is_pd = raw_pd >= 0.50
+    if is_pd:
+        pd_prob = round(raw_pd, 4)
+        lpd_prob = round(raw_lpd, 4)
         prediction_label = 1
         class_name = 'POTENTIAL_DYSGRAPHIA'
         label_name = 'Potential Dysgraphia (PD)'
         classification = 'REQUIRES_ATTENTION'
         confidence = pd_prob
     else:
-        lpd_prob = round(min(0.96, max(0.65, (1.0 - combined_pd) * 1.15)), 4)
-        pd_prob = round(1.0 - lpd_prob, 4)
+        lpd_prob = round(raw_lpd, 4)
+        pd_prob = round(raw_pd, 4)
         prediction_label = 0
         class_name = 'LOW_POTENTIAL_DYSGRAPHIA'
         label_name = 'Low Potential Dysgraphia (LPD)'
@@ -361,10 +327,10 @@ def predict_single_sentence(image_path, expected_sentence=None, checkpoint_path=
                 'potential_dysgraphia': pd_prob,
             },
             'metrics': {
-                'baselineDrift': metrics.get('baseline_drift', 0.0),
-                'lineSlope': metrics.get('line_slope', 0.0),
-                'spacingVariance': metrics.get('spacing_variance', 0.0),
-                'spatialScore': spatial_score,
+                'baselineDrift': 0.0,
+                'lineSlope': 0.0,
+                'spacingVariance': 0.0,
+                'spatialScore': round(raw_pd, 3),
             },
         },
         'processing_time_ms': proc_time,
