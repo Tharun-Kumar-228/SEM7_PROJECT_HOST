@@ -71,6 +71,23 @@ const apiClient = {
       body: isFormData ? body : JSON.stringify(body || {}),
     });
   },
+
+  put: (url, body, config = {}) => {
+    const isFormData = body instanceof FormData;
+    const headers = isFormData ? {} : { 'Content-Type': 'application/json' };
+    return performRequest(url, {
+      method: 'PUT',
+      headers: { ...headers, ...(config.headers || {}) },
+      body: isFormData ? body : JSON.stringify(body || {}),
+    });
+  },
+
+  delete: (url, config = {}) => {
+    return performRequest(url, {
+      method: 'DELETE',
+      headers: config.headers || {},
+    });
+  },
 };
 
 export default apiClient;
