@@ -25,10 +25,12 @@ except Exception as e:
 def health():
     return jsonify({
         'status': 'HEALTHY',
-        'service': 'neuroscreen-ml-dual-model-service',
+        'version': 'v2',
+        'service': 'neuroscreen-ml-dual-model-service-v2',
+        'message': 'NEUROSCREEN ML Dual-Model Service v2 Operational',
         'models': {
-            'character': 'VisionMamba-SingleCharacter-V1 (Dyslexia)',
-            'sentence': 'VMamba2D-Sentence-V1 (Dysgraphia)'
+            'character': 'VisionMamba-SingleCharacter-V2 (Dyslexia)',
+            'sentence': 'VMamba2D-Sentence-V2 (Dysgraphia)'
         }
     })
 

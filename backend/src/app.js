@@ -45,10 +45,10 @@ app.use('/api/reports', reportRoutes);
 app.get(['/', '/health', '/api/health', '/api/v1/health'], (req, res) => {
   res.status(200).json({
     success: true,
-    message: 'NEUROSCREEN API Gateway Operational',
+    message: 'NEUROSCREEN API Gateway Operational v2',
     timestamp: new Date(),
-    version: '1.0.0',
-    mlProviderStatus: 'PYTORCH_VISION_MAMBA_MODEL_ACTIVE',
+    version: '2.0.0',
+    mlProviderStatus: 'PYTORCH_VISION_MAMBA_MODEL_ACTIVE_V2',
   });
 });
 
