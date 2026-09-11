@@ -41,8 +41,8 @@ app.use('/api/teachers', teacherRoutes);
 app.use('/api/screenings', screeningRoutes);
 app.use('/api/reports', reportRoutes);
 
-// Health check endpoint
-app.get('/api/health', (req, res) => {
+// Health check endpoint (supports /, /health, /api/health, /api/v1/health)
+app.get(['/', '/health', '/api/health', '/api/v1/health'], (req, res) => {
   res.status(200).json({
     success: true,
     message: 'NEUROSCREEN API Gateway Operational',
