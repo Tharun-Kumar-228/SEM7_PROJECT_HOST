@@ -97,22 +97,38 @@ class ScreeningService {
       ? { name: screening.studentId.name, age: screening.studentId.age, grade: screening.studentId.grade }
       : { name: 'Child', age: 6, grade: 'K' };
 
-    const xaiExplanation = await geminiXaiService.generateXaiExplanation({
-      characterMetrics: {
-        status: characterStatus,
-        probability: peakDyslexiaProb,
-        confidence: highestCharConf || (1 - peakDyslexiaProb),
-        count: analyzedCharCount,
-        classConfidences: peakCharClasses,
-      },
-      sentenceMetrics: {
-        status: sentenceStatus,
-        probability: dysgraphiaProb,
-        confidence: sentenceConf || (1 - dysgraphiaProb),
-        classConfidences: sentClasses,
-      },
-      studentInfo,
-    });
+    let xaiExplanation;
+    try {
+      xaiExplanation = await geminiXaiService.generateXaiExplanation({
+        characterMetrics: {
+          status: characterStatus,
+          probability: peakDyslexiaProb,
+          confidence: highestCharConf || (1 - peakDyslexiaProb),
+          count: analyzedCharCount,
+          classConfidences: peakCharClasses,
+        },
+        sentenceMetrics: {
+          status: sentenceStatus,
+          probability: dysgraphiaProb,
+          confidence: sentenceConf || (1 - dysgraphiaProb),
+          classConfidences: sentClasses,
+        },
+        studentInfo,
+      });
+    } catch (err) {
+      console.warn('[ScreeningService] XAI synthesis warning, using deterministic engine fallback:', err.message);
+      xaiExplanation = geminiXaiService.generateDeterministicXai({
+        charConf: highestCharConf || (1 - peakDyslexiaProb),
+        charProb: peakDyslexiaProb,
+        charStatus: characterStatus,
+        charClasses: peakCharClasses,
+        sentConf: sentenceConf || (1 - dysgraphiaProb),
+        sentProb: dysgraphiaProb,
+        sentStatus: sentenceStatus,
+        sentClasses,
+        studentInfo,
+      });
+    }
 
     // 4. Save ScreeningResult with full Explainable AI report & confidence scores
     let result = await ScreeningResult.findOne({ screeningId });

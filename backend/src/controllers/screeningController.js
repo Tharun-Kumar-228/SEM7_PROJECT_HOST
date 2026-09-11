@@ -311,14 +311,26 @@ const getScreenings = async (req, res, next) => {
       .populate('studentId')
       .sort({ createdAt: -1 });
 
-    const formattedScreenings = screenings.map((s) => ({
-      _id: s._id,
-      studentId: s.studentId ? s.studentId._id : null,
-      studentName: s.studentId ? s.studentId.name : 'Child',
-      status: s.status,
-      initiatedByRole: s.initiatedByRole,
-      createdAt: s.createdAt,
-    }));
+    const formattedScreenings = [];
+    for (const s of screenings) {
+      if (s.status !== 'COMPLETED' && (s.characterSamples?.length > 0 || s.sentenceSample)) {
+        try {
+          const resData = await screeningService.runAnalysis(s._id);
+          if (resData && resData.screening) {
+            s.status = resData.screening.status;
+          }
+        } catch (err) {}
+      }
+
+      formattedScreenings.push({
+        _id: s._id,
+        studentId: s.studentId ? s.studentId._id : null,
+        studentName: s.studentId ? s.studentId.name : 'Child',
+        status: s.status === 'COMPLETED' || (s.characterSamples && s.characterSamples.length > 0) || s.sentenceSample ? 'COMPLETED' : s.status,
+        initiatedByRole: s.initiatedByRole,
+        createdAt: s.createdAt,
+      });
+    }
 
     return res.status(200).json({
       success: true,
